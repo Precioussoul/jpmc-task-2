@@ -7,15 +7,15 @@ import './Graph.css';
  * Props declaration for <Graph />
  */
 interface IProps {
-  data: ServerRespond[],
+  data: ServerRespond[];
 }
 
 /**
  * Perspective library adds load to HTMLElement prototype.
  * This interface acts as a wrapper for Typescript compiler.
  */
-interface PerspectiveViewerElement {
-  load: (table: Table) => void,
+interface PerspectiveViewerElement extends HTMLElement {
+  load: (table: Table) => void;
 }
 
 /**
@@ -32,7 +32,9 @@ class Graph extends Component<IProps, {}> {
 
   componentDidMount() {
     // Get element to attach the table from the DOM.
-    const elem: PerspectiveViewerElement = document.getElementsByTagName('perspective-viewer')[0] as unknown as PerspectiveViewerElement;
+    const elem = (document.getElementsByTagName(
+      'perspective-viewer'
+    )[0] as unknown) as PerspectiveViewerElement;
 
     const schema = {
       stock: 'string',
@@ -40,6 +42,15 @@ class Graph extends Component<IProps, {}> {
       top_bid_price: 'float',
       timestamp: 'date',
     };
+    // added more attributes to the perspectiveView HTMLElement to configure our graph
+    elem.setAttribute('view', 'y_line');
+    elem.setAttribute('cloumn-pivots', '["stock"]');
+    elem.setAttribute('row-pivots', '["timestamp"]');
+    elem.setAttribute('columns', '["top_ask_price"]');
+    elem.setAttribute(
+      'aggregates',
+      `{"stock": "distinct count", "top_ask_price": "avg", "top_bid_price": "avg", "timestamp": "distinct count"}`
+    );
 
     if (window.perspective && window.perspective.worker()) {
       this.table = window.perspective.worker().table(schema);
@@ -57,15 +68,17 @@ class Graph extends Component<IProps, {}> {
     if (this.table) {
       // As part of the task, you need to fix the way we update the data props to
       // avoid inserting duplicated entries into Perspective table again.
-      this.table.update(this.props.data.map((el: any) => {
-        // Format the data from ServerRespond to the schema
-        return {
-          stock: el.stock,
-          top_ask_price: el.top_ask && el.top_ask.price || 0,
-          top_bid_price: el.top_bid && el.top_bid.price || 0,
-          timestamp: el.timestamp,
-        };
-      }));
+      this.table.update(
+        this.props.data.map((el: any) => {
+          // Format the data from ServerRespond to the schema
+          return {
+            stock: el.stock,
+            top_ask_price: (el.top_ask && el.top_ask.price) || 0,
+            top_bid_price: (el.top_bid && el.top_bid.price) || 0,
+            timestamp: el.timestamp,
+          };
+        })
+      );
     }
   }
 }
